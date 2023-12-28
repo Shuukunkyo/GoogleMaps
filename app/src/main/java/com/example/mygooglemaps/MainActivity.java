@@ -3,6 +3,7 @@ package com.example.mygooglemaps;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -44,17 +45,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LatLng originLatLng;
     private String originLocation;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
 
-
         //// 使用你的API密钥初始化Places API
-        Places.initialize(getApplicationContext(),"AIzaSyCYwtmWLooNpYVxGKnjNxbhNrMUUJ6GG24");
+        Places.initialize(getApplicationContext(), "AIzaSyCYwtmWLooNpYVxGKnjNxbhNrMUUJ6GG24");
         // 初始化 Places API 客户端
         placesClient = Places.createClient(this);
 
@@ -70,7 +68,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
 
     }
+
     // 修改 getDirections 方法，接受两个坐标点参数
+    @SuppressLint("StaticFieldLeak")
     private void getDirections(LatLng origin, LatLng destination) {
         String apiKey = "AIzaSyBL3gX01ZNGGqgKo12RI1RmlC_SLNZEv2o";
         String url = "https://maps.googleapis.com/maps/api/directions/json" +
@@ -108,9 +108,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }.execute();
     }
 
-
-
-
     // 添加以下方法，用于解析导航路线数据并绘制到地图上
     private void drawRoute(String jsonData) {
         try {
@@ -137,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-        @Override
+    @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         // 当地图准备好使用时调用此方法
         myMap = googleMap;
@@ -145,56 +142,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // 添加缩小和放大按钮
         myMap.getUiSettings().setZoomControlsEnabled(true);
 
-            // 设置地图单击事件监听器
-            googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-                @Override
-                public void onMapClick(@NonNull LatLng latLng) {
-                    // 处理单击事件
-                    // 获取单击点的坐标
-                    Log.d("MyApp", "onMapClick: " + latLng);
-                }
-            });
+        // 设置地图单击事件监听器
+        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(@NonNull LatLng latLng) {
+                // 处理单击事件
+                // 获取单击点的坐标
+                Log.d("MyApp", "onMapClick: " + latLng);
+            }
+        });
 
         // 设置地点自动完成组件
 //        AutocompleteSupportFragment autocompleteFragment = AutocompleteSupportFragment.newInstance();
 //        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
 
-            // 初始化 originLatLng 变量
-            originLatLng = null;
-            // 添加 AutocompleteSupportFragment
-            AutocompleteSupportFragment autocompleteFragment = AutocompleteSupportFragment.newInstance();
-            autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
+        // 初始化 originLatLng 变量
+        originLatLng = null;
+        // 添加 AutocompleteSupportFragment
+        AutocompleteSupportFragment autocompleteFragment = AutocompleteSupportFragment.newInstance();
+        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
 
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.autocomplete_fragment_container, autocompleteFragment)
-                    .commit();
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.autocomplete_fragment_container, autocompleteFragment)
+                .commit();
 
-            // 在 Autocomplete 监听器中调用 getDirections 方法
-            autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-                @Override
-                public void onPlaceSelected(@NonNull Place place) {
-                    // 处理选择的地点
-                    LatLng selectedLocation = place.getLatLng();
-                    originLocation = place.getName();
+        // 在 Autocomplete 监听器中调用 getDirections 方法
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(@NonNull Place place) {
+                // 处理选择的地点
+                LatLng selectedLocation = place.getLatLng();
+                originLocation = place.getName();
 
-                    if (originLatLng == null) {
-                        originLatLng = selectedLocation;
-                    } else {
-                        // 已经选择了起点和终点，进行导航路线绘制
-                        getDirections(originLatLng, selectedLocation);
-                         // 重置起点，以便下次选择
-                    }
-
-                    myMap.moveCamera(CameraUpdateFactory.newLatLng(selectedLocation));
-                    myMap.addMarker(new MarkerOptions().position(selectedLocation).title(place.getName()));
+                if (originLatLng == null) {
+                    originLatLng = selectedLocation;
+                } else {
+                    // 已经选择了起点和终点，进行导航路线绘制
+                    getDirections(originLatLng, selectedLocation);
+                    // 重置起点，以便下次选择
                 }
 
-                @Override
-                public void onError(@NonNull Status status) {
-                    // 处理错误
-                }
-            });
+                myMap.moveCamera(CameraUpdateFactory.newLatLng(selectedLocation));
+                myMap.addMarker(new MarkerOptions().position(selectedLocation).title(place.getName()));
+            }
+
+            @Override
+            public void onError(@NonNull Status status) {
+                // 处理错误
+            }
+        });
 
         getSupportFragmentManager()
                 .beginTransaction()
