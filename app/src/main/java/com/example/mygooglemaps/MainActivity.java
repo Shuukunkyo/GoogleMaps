@@ -49,8 +49,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
         //// 使用你的API密钥初始化Places API
         Places.initialize(getApplicationContext(), "AIzaSyCYwtmWLooNpYVxGKnjNxbhNrMUUJ6GG24");
         // 初始化 Places API 客户端
@@ -66,9 +64,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
     }
-
     // 修改 getDirections 方法，接受两个坐标点参数
     @SuppressLint("StaticFieldLeak")
     private void getDirections(LatLng origin, LatLng destination) {
