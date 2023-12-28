@@ -12,7 +12,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
@@ -33,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +41,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap myMap;
     private PlacesClient placesClient;
     private Polyline currentPolyline;
+    private LatLng originLatLng;
+    private String originLocation;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,20 +70,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
 
     }
-    private void getDirections(LatLng origin, LatLng destination){
-        // 创建 Directions API 请求
-        // 在这里使用你的 Google Maps API 密钥
-        String apiKey ="AIzaSyASFUDjlk2dwajNZmZT1vY6aVC8C-oao18";
+    // 修改 getDirections 方法，接受两个坐标点参数
+    private void getDirections(LatLng origin, LatLng destination) {
+        String apiKey = "AIzaSyBL3gX01ZNGGqgKo12RI1RmlC_SLNZEv2o";
         String url = "https://maps.googleapis.com/maps/api/directions/json" +
                 "?origin=" + origin.latitude + "," + origin.longitude +
                 "&destination=" + destination.latitude + "," + destination.longitude +
                 "&key=" + apiKey;
 
         // 发起网络请求获取导航路线数据
-        // 此处可以使用 Volley、Retrofit 等网络请求库
-        // 这里简化，使用 AsyncTask 进行演示
-
-        new AsyncTask<Void,Void,String>() {
+        // 发起网络请求获取导航路线数据
+        new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... voids) {
                 try {
@@ -100,13 +99,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return null;
                 }
             }
-                @Override
-                protected void onPostExecute(String jsonData) {
-                    // 在这里解析获取的 JSON 数据，并绘制导航路线到地图上
-                    drawRoute(jsonData);
-                }
-            }.execute();
-        }
+
+            @Override
+            protected void onPostExecute(String jsonData) {
+                // 在这里解析获取的 JSON 数据，并绘制导航路线到地图上
+                drawRoute(jsonData);
+            }
+        }.execute();
+    }
+
+
+
 
     // 添加以下方法，用于解析导航路线数据并绘制到地图上
     private void drawRoute(String jsonData) {
@@ -114,6 +117,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // 解析 JSON 数据
             JSONObject jsonObject = new JSONObject(jsonData);
             JSONArray routes = jsonObject.getJSONArray("routes");
+            if (routes.length() > 0) {
+                JSONObject route = routes.getJSONObject(0);
+                // 其他代码...
+            }
             JSONObject route = routes.getJSONObject(0);
             JSONObject polyline = route.getJSONObject("overview_polyline");
             String encodedPolyline = polyline.getString("points");
@@ -138,34 +145,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // 添加缩小和放大按钮
         myMap.getUiSettings().setZoomControlsEnabled(true);
 
+            // 设置地图单击事件监听器
+            googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                @Override
+                public void onMapClick(@NonNull LatLng latLng) {
+                    // 处理单击事件
+                    // 获取单击点的坐标
+                    Log.d("MyApp", "onMapClick: " + latLng);
+                }
+            });
+
         // 设置地点自动完成组件
 //        AutocompleteSupportFragment autocompleteFragment = AutocompleteSupportFragment.newInstance();
 //        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
 
+            // 初始化 originLatLng 变量
+            originLatLng = null;
             // 添加 AutocompleteSupportFragment
             AutocompleteSupportFragment autocompleteFragment = AutocompleteSupportFragment.newInstance();
-            Log.d("AutocompleteFragment", "Fragment created: " + (autocompleteFragment != null));
+            autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
 
-            if (autocompleteFragment != null) {
-                autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
-            } else {
-                Log.e("AutocompleteFragment", "AutocompleteFragment is null");
-            }
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.autocomplete_fragment_container, autocompleteFragment)
+                    .commit();
 
+            // 在 Autocomplete 监听器中调用 getDirections 方法
             autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-            @Override
-            public void onPlaceSelected(@NonNull Place place) {
-                // 处理选择的地点
-                LatLng selectedLocation = place.getLatLng();
-                myMap.moveCamera(CameraUpdateFactory.newLatLng(selectedLocation));
-                myMap.addMarker(new MarkerOptions().position(selectedLocation).title(place.getName()));
-            }
+                @Override
+                public void onPlaceSelected(@NonNull Place place) {
+                    // 处理选择的地点
+                    LatLng selectedLocation = place.getLatLng();
+                    originLocation = place.getName();
 
-            @Override
-            public void onError(@NonNull Status status) {
-                // 处理错误
-            }
-        });
+                    if (originLatLng == null) {
+                        originLatLng = selectedLocation;
+                    } else {
+                        // 已经选择了起点和终点，进行导航路线绘制
+                        getDirections(originLatLng, selectedLocation);
+                         // 重置起点，以便下次选择
+                    }
+
+                    myMap.moveCamera(CameraUpdateFactory.newLatLng(selectedLocation));
+                    myMap.addMarker(new MarkerOptions().position(selectedLocation).title(place.getName()));
+                }
+
+                @Override
+                public void onError(@NonNull Status status) {
+                    // 处理错误
+                }
+            });
 
         getSupportFragmentManager()
                 .beginTransaction()
